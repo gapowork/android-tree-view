@@ -1,5 +1,5 @@
 # Gapo Tree View
-Support TreeView cho RecyclerView với khả năng tùy biến cao
+Support TreeView for RecyclerView with highly customizable
 
 ## Demo
 <p float="left">
@@ -9,11 +9,11 @@ Support TreeView cho RecyclerView với khả năng tùy biến cao
 
 ## Features
 - Expand/Collapse nodes
-- Select/Unselect/GetSelected nodes
-- Khả năng tùy biến cao với NodeState (example ở dưới)
-- Hỗ trợ margin theo level node
-- Hỗ trợ concat adapters
-- Show/Hide Tree: Ẩn hiện item của tree, hiệu quả cao khi sử dụng với concat adapters
+- Select/Unselect/Get Selected nodes
+- Highly customizable UI with NodeState (example below)
+- Support margin by node's level
+- Support concat adapters
+- Show/Hide Tree: Highly effective when used with concat adapters
 
 ## Installation
 Gradle
@@ -22,51 +22,54 @@ implementation 'vn.gapowork.android:tree-view:1.0.0-alpha01'
 ```
 
 ## Usage
-### Chuẩn bị data đầu vào, cần extends NodeData, ví dụ:
+### Prepare input data, the model need extends NodeData, example:
 ```kotlin
-data class ExampleNodeViewData(
-    val itemId: String, 
+data class Example(
+    //required
+    override val nodeViewId: String, 
+    val child: List<ExampleNodeViewData>, 
+    //your custom field
     val exampleId: String, 
     val exampleName: String,
-    val child: List<ExampleNodeViewData>, // MUST HAVE
 ) : NodeData<ExampleNodeViewData> {
 
     //list child
-    override fun getNodeChild(): List<NodeData<ExampleNodeViewData>> {
+    override fun getNodeChild(): List<NodeData<Example>> {
         return child
     }
 
-    //id của parent, phải là unique id
-    override val nodeViewId: String
-        get() = itemId
-
-    //để sử dụng diff util
-    override fun areItemsTheSame(item: NodeData<ExampleNodeViewData>): Boolean {
+    //for diff util
+    override fun areItemsTheSame(item: NodeData<Example>): Boolean {
        ...
     }
 
-    //để sử dụng diff util
-    override fun areContentsTheSame(item: NodeData<ExampleNodeViewData>): Boolean {
+    //for diff util
+    override fun areContentsTheSame(item: NodeData<Example>): Boolean {
         ...
+    }
+    
+     //for diff util
+    override fun getChangePayload(item: NodeData<Example>): Bundle {
+        return Bundle()
     }
 }
 ```
 
-### Tạo tree 
+### Create Tree 
 ```kotlin
-val treeView = GapoTreeView()
-treeView.initialize(
-    recyclerView = binding.recyclerView, //recycler view sẽ được support tree view
-    itemLayoutRes = R.layout.example_node_view_item, //item layout
-    nodes = list.toMutableList(), //list NodeData
-    showAllNodes = false, //có show hết tất cả nodes k hay chỉ show level 1
-    isSupportMargin = true, //auto margin theo level của node
-    listener = GapoTreeView.Listener, //listener của tree view
-    adapters = arrayOf(exampleHeaderAdapter, exampleSearchAdapter) //các adapters khác để concat nếu cần
-)
+val treeView = GapoTreeView.Builder.plant<DepartmentNodeViewData>(Context)
+    .withRecyclerView(binding.treeViewDepartment) //RecyclerView will be supported tree view
+    .withLayoutRes(R.layout.department_node_view_item) //item layout
+    .setListener(GapoTreeView.Listener) //listener of tree view
+    .setData(List<NodeData>) //list NodeData
+    .itemMargin(Int) //optional: margin by node's level. default = 24dp
+    .addItemDecoration() //optional: item decoration of RecyclerView. If use this will disable feature itemMargin
+    .showAllNodes(Boolean) //optional: show all nodes or just show parent node. default = false
+    .addAdapters(config: ConcatAdapter.Config, vararg adapters: RecyclerView.Adapter<*>) //optional: the adapters to concat
+    .build()
 ```
 
-### Các hàm cơ bản của GapoTreeView:
+### Basic functions
 ```kotlin 
 //expand node
 fun expandNode(nodeId: String)
@@ -74,63 +77,70 @@ fun expandNode(nodeId: String)
 //collapse node
 fun collapseNode(nodeId: String)
 
-//select 1 node theo id. hàm này chỉ update data, k update UI và sẽ trigger [onNodeSelected] để xử lí tiếp
+//select a node by id. This function only updates data, not UI and will trigger [onNodeSelected] for further processing
 fun selectNode(nodeId: String, isSelected: Boolean)
 
-//select nhiều nodes. hàm này chỉ update data, k update UI
+//select multiple nodes. This function only updates data, not UI
 fun setSelectedNode(nodes: List<NodeViewData<T>>, isSelected: Boolean)
 
-//bỏ select tất cả các nodes. hàm này chỉ update data, k update UI
+//unselect all nodes. This function only updates data, not UI
 fun clearNodesSelected()
 
-//lấy tất cả các nodes đang được select
+//get all selected nodes
 fun getSelectedNodes(): List<T>
 
 //update layout
 fun requestUpdateTree()
 ```
 
-### Khả năng customize cao với NodeState: 
-Mục đích chính của NodeState là để customize UI. Set NodeState theo ý và sau đó update ở onBind() (xem onBind() của GapoTreeView.Listener phía dưới để rõ hơn). 
-<br>Có thể tùy ý tạo các NodeState như:
+### Highly customizable with NodeState
+The main purpose of NodeState is to customize the UI. Set NodeState as you need and then update at onBind() (see onBind() of GapoTreeView.Listener below for more details)
+<br>You can optionally create NodeStates like:
 ```kotlin
 object DisabledNodeState: NodeState
 class SpecialNodeState(val label: String): NodeState
 
-//set NodeState cho nodes. hàm này chỉ update data, k update UI
+//set NodeState for nodes. This function only updates data, not UI
 fun setNodesState(nodeIds: List<String>, nodeState: NodeState?)
 
-//xóa state tất cả các nodes. hàm này chỉ update data, k update UI
+//remove state for all nodes. This function only updates data, not UI
 fun clearNodesState()
 
-//lấy các nodes theo state
+//get nodes by state
 fun getNodesByState(nodeState: NodeState)
 ```
 
 ### GapoTreeView.Listener
 ```kotlin
 /**
- * @param [holder] view holder của recyclerview adapter, sử dụng để bind UI
- * @param [position] vị trí item hiện tại
- * @param [item] node item
+ * @param [holder] view holder of Recyclerview Adapter
+ * @param [position] current item position
+ * @param [item] node item info
+ * @param [bundle] change payload
  */
  override fun onBind(
     holder: View,
     position: Int,
-    item: NodeViewData<ExampleNodeViewData>
+    item: NodeViewData<Example>,
+    bundle: Bundle? 
 ){
-    //sample onBind()
+    //find view by id
     val rbCheck = holder.findViewById<AppCompatRadioButton>(R.id.rb_check)
     val button = holder.findViewById<Button>(R.id.button)
-    val data = item.getData() //lấy data để bind UI, ở đây là ExampleNodeViewData
-    val state = item.nodeState //state của note
-    if(state is DisabledNodeState) {
-        //bind UI theo state
-    }
-
-    //ví dụ khi click 1 button, set state node đó thành disabled
+    
+    //get your model. This case is Example
+    val data: Example = item.getData() 
+    //get state of node
+    val state: NodeState = item.nodeState 
+    
+    //suppose when click 1 button, set state that node to DisabledNodeState
     button.setOnClickListener {
         treeView.setNodesState(listOf(item.nodeId), DisabledNodeState)
+    }
+    
+    //bind UI by NodeState
+    if(state is DisabledNodeState) {
+        
     }
 
     //expand/collapse node
@@ -144,51 +154,52 @@ fun getNodesByState(nodeState: NodeState)
 
     //select node
     rbCheck.setOnClickListener {
-        treeView.selectNode(item.nodeId, !item.isSelected) //sẽ trigger onNodeSelected
+        treeView.selectNode(item.nodeId, !item.isSelected) //will trigger onNodeSelected
     }
 }
 
 /**
- * Được gọi sau khi call treeView.selectNode()
+ * Will be triggered after call treeView.selectNode()
  * @param [node] node item
- * @param [child] child của node được select
+ * @param [child] child of selected node
+ * @param [isSelected] is selected or not
  */
 override fun onNodeSelected(
     node: NodeViewData<DepartmentNodeViewData>,
     child: List<NodeViewData<DepartmentNodeViewData>>,
     isSelected: Boolean
 ) {
-    //ví dụ case single-choice
-    if (!isSelected) return //k cho unselect
+    //example case single-choice
+    if (!isSelected) return //not allow unselect
 
-    treeView.clearNodesSelected() //xóa trạng thái đang được chọn của các nodes
-    treeView.setSelectedNode(listOf(node), isSelected) //set trạng thái selected cho node hiện tại
-    treeView.requestUpdateTree() //update layout
+    treeView.clearNodesSelected() 
+    treeView.setSelectedNode(listOf(node), isSelected) 
+    treeView.requestUpdateTree()
 }
 
 ```
 
 ### Support Concat Adapter:
-1. Tại sao cần support concat adapter? 
-<br>Ví dụ 1 màn hình cần hiển thị 1 list treeview, và đồng thời có chức năng search. Với chức năng search sẽ hiển thị dạng flat/breadcrumb, như vậy có 2 cách làm: 1 là sử dụng 2 recyclerview, 2 là sử dụng 1 recyclerview với concat adapter.
-<br>Nếu sử dụng GapoTreeView trong fragment, activity thì sẽ không gặp vấn đề gì, có thể dễ dàng tách thành 2 recyclerview, 1 cho TreeView, 1 cho tính năng search.
-<br>Tuy nhiên nếu sử dụng 2 RecyclerView trong BottomSheetFragment sẽ có issue không thể scroll được RecyclerView cùng BottomSheet. Như vậy giải pháp ở đây là sử dụng ConcatAdapter cho 1 RecyclerView.
+1. Why need support concat adapter? 
+<br>For example, a screen needs to display a list of treeviews, and at the same time has a search function. With the search function, it will display flat/breadcrumb form, So there are 2 ways to do it: the first way is to use 2 recyclerview, the second way is to use 1 recyclerview with concat adapter.
+<br>If you are using GapoTreeView in fragment, activity there won't be any problem, can be easily split into 2 recyclerviews, 1 for TreeView, 1 for search feature.
+<br>However, if using 2 RecyclerView in the BottomSheetFragment, there will have a issue that can't scroll the RecyclerView and the BottomSheet together. So the solution here is to use ConcatAdapter for 1 RecyclerView.
 
-2. Cách sử dụng:
-Trong hàm initialize() của GapoTreeView, truyền các adapters cần concat vào param adapters.
-<br>Các hàm để ẩn hiện tree
+2. Usage:
+In the GapoTreeView's constructor, pass the other adapters that need concat to the adapters param.
+<br>Functions to show/hide tree
 ```kotlin
-//ẩn tree view
  fun hideTree()
-
-//show tree view
+ 
  fun showTree()
 ```
-Ví dụ trong case search, chúng ta cần ẩn TreeView đi khi search và show TreeView khi không muốn search nữa. Sau khi implement TreeView với ConcatAdapter, được kết quả như sau: <br>
-<img src="/images/search.gif" width="360" />
+For example, in the search case, we need to hide the TreeView when searching and show the TreeView when closed search. After implementing TreeView with ConcatAdapter, the result is as follows:
+ <br>
+<img src="/screenshots/search.gif" width="360" />
 
 ### Sample
-Có thể tham khảo thêm ở OrganizationDepartmentBottomSheetFragment đang implement GapoTreeView với ConcatAdapter.
+- [Single choice](app/src/main/java/com/gapo/treeview/SingleChoiceActivity.kt)
+- [Multi choice](app/src/main/java/com/gapo/treeview/MultiChoiceActivity.kt)
 
 
 
