@@ -26,7 +26,7 @@ class GapoTreeView<T> private constructor(
     nodes: List<NodeData<T>>,
     showAllNodes: Boolean,
     listener: Listener<T>,
-    vararg adapters: RecyclerView.Adapter<*> = emptyArray()
+    adapters: Pair<ConcatAdapter.Config, List<RecyclerView.Adapter<*>>>
 ) {
 
     private val nodes = mutableListOf<NodeViewData<T>>()
@@ -49,7 +49,7 @@ class GapoTreeView<T> private constructor(
         private var showAllNodes: Boolean = false
         private var itemMargin: Int =
             context.resources.getDimensionPixelSize(R.dimen.default_margin_tree_item)
-        private var adapters: MutableList<RecyclerView.Adapter<*>> = mutableListOf()
+        private var adapters: Pair<ConcatAdapter.Config, List<RecyclerView.Adapter<*>>>? = null
         private val nodes: MutableList<NodeData<T>> = mutableListOf()
         private var treeItemDecoration: RecyclerView.ItemDecoration? = null
 
@@ -76,9 +76,10 @@ class GapoTreeView<T> private constructor(
             this.nodes.addAll(list)
         }
 
-        fun addAdapters(vararg adapters: RecyclerView.Adapter<*>) = apply {
-            this.adapters.addAll(adapters)
-        }
+        fun addAdapters(config: ConcatAdapter.Config, vararg adapters: RecyclerView.Adapter<*>) =
+            apply {
+                this.adapters = config to adapters.toList()
+            }
 
         fun build() = GapoTreeView(
             recyclerView,
@@ -87,7 +88,7 @@ class GapoTreeView<T> private constructor(
             nodes,
             showAllNodes,
             listener,
-            *adapters.toTypedArray()
+            this.adapters ?: ConcatAdapter.Config.DEFAULT to emptyList()
         )
 
         companion object {
@@ -121,19 +122,19 @@ class GapoTreeView<T> private constructor(
         //prepare UI
         with(recyclerView) {
             layoutManager = LinearLayoutManager(context)
-            adapter = if (adapters.isEmpty()) {
+            adapter = if (adapters.second.isEmpty()) {
                 TreeViewAdapter(itemLayoutRes, listener).also {
                     this@GapoTreeView.treeViewAdapter = it
                 }
             } else {
-                ConcatAdapter(
-                    listOf(
-                        *adapters,
+                val listConcatAdapters = adapters.second.toMutableList().apply {
+                    add(
                         TreeViewAdapter(itemLayoutRes, listener).also {
                             this@GapoTreeView.treeViewAdapter = it
                         }
                     )
-                )
+                }
+                ConcatAdapter(adapters.first, listConcatAdapters)
             }
             addItemDecoration(treeItemDecoration)
         }
