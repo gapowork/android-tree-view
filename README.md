@@ -65,7 +65,7 @@ val treeView = GapoTreeView.Builder.plant<DepartmentNodeViewData>(Context)
     .itemMargin(Int) //optional: margin by node's level. default = 24dp
     .addItemDecoration() //optional: item decoration of RecyclerView. If use this will disable feature itemMargin
     .showAllNodes(Boolean) //optional: show all nodes or just show parent node. default = false
-    .addAdapters(config: ConcatAdapter.Config, vararg adapters: RecyclerView.Adapter<*>) //optional: the adapters to concat
+    .addAdapters(config: ConcatAdapter.Config, adapters: List<RecyclerView.Adapter<*>>) //optional: the adapters to concat
     .build()
 ```
 
