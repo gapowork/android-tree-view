@@ -76,7 +76,7 @@ data class SampleModel(
         else item.name == name && item.child.size == child.size
     }
 
-    override fun getChangePayload(item: NodeViewData<SampleModel>): Bundle {
+    override fun getChangePayload(item: NodeData<SampleModel>): Bundle {
         return Bundle()
     }
 }

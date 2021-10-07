@@ -67,7 +67,7 @@ data class NodeViewData<T>(
 
         override fun getChangePayload(oldItem: NodeViewData<T>, newItem: NodeViewData<T>): Bundle {
             return Bundle().apply {
-                putAll(oldItem.data.getChangePayload(newItem))
+                putAll(oldItem.data.getChangePayload(newItem.data))
             }
         }
     }

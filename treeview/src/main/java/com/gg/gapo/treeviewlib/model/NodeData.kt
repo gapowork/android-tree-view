@@ -15,5 +15,5 @@ interface NodeData<T> {
 
     fun areContentsTheSame(item: NodeData<T>): Boolean
 
-    fun getChangePayload(item: NodeViewData<T>): Bundle
+    fun getChangePayload(item: NodeData<T>): Bundle
 }
