@@ -1,5 +1,5 @@
 # Gapo Tree View
-Support TreeView for RecyclerView with highly customizable
+Support TreeView for RecyclerView with highly customizable and search support
 
 ## Demo
 <p float="left">

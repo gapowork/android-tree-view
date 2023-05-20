@@ -2,7 +2,6 @@ package com.gapo.treeview
 
 import android.os.Bundle
 import com.gg.gapo.treeviewlib.model.NodeData
-import com.gg.gapo.treeviewlib.model.NodeViewData
 
 data class SampleModel(
     override val nodeViewId: String,
