@@ -16,4 +16,11 @@ interface NodeData<T> {
     fun areContentsTheSame(item: NodeData<T>): Boolean
 
     fun getChangePayload(item: NodeData<T>): Bundle
+
+    @Suppress("UNCHECKED_CAST")
+    fun getHierarchyNodeChild(): List<T> {
+        return mutableListOf(this as T).apply {
+            getNodeChild().forEach { this += it.getHierarchyNodeChild() }
+        }
+    }
 }

@@ -1,12 +1,13 @@
 package com.gapo.treeview
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.appcompat.widget.AppCompatRadioButton
 import androidx.appcompat.widget.AppCompatTextView
-import androidx.recyclerview.widget.RecyclerView
+import androidx.core.widget.addTextChangedListener
 import com.gg.gapo.treeviewlib.GapoTreeView
 import com.gg.gapo.treeviewlib.model.NodeViewData
 
@@ -24,6 +25,21 @@ class SingleChoiceActivity : AppCompatActivity(), GapoTreeView.Listener<SampleMo
             .setListener(this)
             .setData(SampleModel.getList().toMutableList())
             .build()
+
+        findViewById<AppCompatEditText>(R.id.searchEditText)?.addTextChangedListener {
+            treeView.filter { nodeViewData ->
+                val searchText = it?.toString()?.lowercase() ?: ""
+
+                if (searchText.isBlank())
+                    return@filter true
+
+                // if any children match the search, show parents too
+                val hierarchyList = nodeViewData.getData().getHierarchyNodeChild()
+                hierarchyList.any {
+                    searchText in it.name.lowercase()
+                }
+            }
+        }
     }
 
     override fun onBind(

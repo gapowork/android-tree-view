@@ -29,6 +29,7 @@ class GapoTreeView<T> private constructor(
     adapters: Pair<ConcatAdapter.Config, List<RecyclerView.Adapter<*>>>
 ) {
 
+    private var filterPredicate: (NodeViewData<T>) -> Boolean = { true }
     private val nodes = mutableListOf<NodeViewData<T>>()
     private val nodesShowOnUI = mutableListOf<NodeViewData<T>>()
     private var treeViewAdapter: TreeViewAdapter<T>? = null
@@ -191,11 +192,13 @@ class GapoTreeView<T> private constructor(
         if (isLastNode) {
             nodesShowOnUI.addAll(
                 nodes.filter { it.parentNodeIds.contains(nodeId) && it.nodeLevel == parentNode.nodeLevel + 1 }
+                    .filter(filterPredicate)
             )
         } else {
             nodesShowOnUI.addAll(
                 min(nodesShowOnUI.size - 1, parentNodeIndex + 1),
                 nodes.filter { it.parentNodeIds.contains(nodeId) && it.nodeLevel == parentNode.nodeLevel + 1 }
+                    .filter(filterPredicate)
             )
         }
         requestUpdateTree()
@@ -295,6 +298,41 @@ class GapoTreeView<T> private constructor(
         if (isTreeShowing) {
             treeViewAdapter?.submitList(nodesShowOnUI.map { it.copy() })
         }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    fun filter(predicate: (NodeViewData<T>) -> Boolean) {
+        this.filterPredicate = predicate
+
+        val filterNodes = nodes.filter(predicate)
+
+        nodesShowOnUI.clear()
+        nodesShowOnUI.addAll(filterNodes)
+
+        // expand all parent nodes
+        filterNodes.forEach { nodeViewData ->
+            val parentNodeIds = nodeViewData.parentNodeIds
+            parentNodeIds.forEach { parentNodeId ->
+                nodesShowOnUI.find { it.nodeId == parentNodeId }?.isExpanded = true
+            }
+
+            val data = nodeViewData.getData() as NodeData<T>
+            val hierarchyList = data.getHierarchyNodeChild() as List<NodeData<T>>
+            if (hierarchyList.size <= 1) {
+                nodeViewData.isExpanded = false
+                return@forEach
+            }
+
+            val isContainChildren =
+                hierarchyList.subList(1, hierarchyList.size).any { hierarchyNodeData ->
+                    nodesShowOnUI.any { it.nodeId == hierarchyNodeData.nodeViewId }
+                }
+
+            nodeViewData.isExpanded = isContainChildren
+            nodeViewData.isLeaf = !isContainChildren
+        }
+
+        requestUpdateTree()
     }
 
     private fun findNodeLevel(node: NodeViewData<T>): Int {

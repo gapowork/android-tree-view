@@ -1,13 +1,16 @@
 package com.gapo.treeview
 
+import android.annotation.SuppressLint
 import android.content.res.ColorStateList
 import android.graphics.Color
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatCheckBox
+import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.appcompat.widget.AppCompatTextView
+import androidx.core.widget.addTextChangedListener
 import com.gg.gapo.treeviewlib.GapoTreeView
 import com.gg.gapo.treeviewlib.model.NodeState
 import com.gg.gapo.treeviewlib.model.NodeViewData
@@ -16,6 +19,7 @@ class MultiChoiceActivity : AppCompatActivity(), GapoTreeView.Listener<SampleMod
 
     private lateinit var treeView: GapoTreeView<SampleModel>
 
+    @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_multi_choice)
@@ -26,6 +30,21 @@ class MultiChoiceActivity : AppCompatActivity(), GapoTreeView.Listener<SampleMod
             .setListener(this)
             .setData(SampleModel.getList().toMutableList())
             .build()
+
+        findViewById<AppCompatEditText>(R.id.searchEditText)?.addTextChangedListener {
+            treeView.filter { nodeViewData ->
+                val searchText = it?.toString()?.lowercase() ?: ""
+
+                if (searchText.isBlank())
+                    return@filter true
+
+                // if any children match the search, show parents too
+                val hierarchyList = nodeViewData.getData().getHierarchyNodeChild()
+                hierarchyList.any {
+                    searchText in it.name.lowercase()
+                }
+            }
+        }
     }
 
     override fun onBind(
